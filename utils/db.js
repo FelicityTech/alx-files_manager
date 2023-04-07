@@ -1,50 +1,43 @@
-import { 
-    MongoClient 
-} from 'mongodb';
-import {
-    env,
-} from 'process';
+import { MongoClient } from 'mongodb';
+// import { MongoClient } from 'mongodb/lib/mongo_client';
 
-class DBClient{
-    // connection to the mongodb server with class
-    constructor() {
-        this.host = process.env.DB_HOST || 'localhost';
-        this.port = process.env.DB_PORT || 27017;
-        this.database = process.env.DATABASE || 'file_manager';
+class DBClient {
+  // A class with basic connection to a mongodb server
+  constructor() {
+    const host = process.env.DB_HOST || 'localhost';
+    const port = process.env.DB_PORT || 27017;
+    const database = process.env.DB_DATABASE || 'files_manager';
 
-        MongoClient(`mongodb://${this.host}:${this.port}`, {
-            useNewUrlParser: true,
-            useUnifieldTopology: true,
-        }).connect().then((client) => {
-            this.client =client;
-            this.db = this.client.db(this.dbName);
-        })
+    const uri = `mongodb://${host}:${port}/${database}`;
+    const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+    this.client = client;
+    this.client.connect();
+    this.db = client.db(database);
+  }
+
+  // checks if the mongoddb is connected
+  isAlive() {
+    return this.client.topology.isConnected();
+  }
+
+  async nbUsers() {
+    try {
+      const users = await this.db.collection('users').countDocuments();
+      return users;
+    } catch (err) {
+      throw new Error(`Unable to get number of users ${err.message}`);
     }
+  }
 
-    isAlive() {
-        if(this.db) return true;
-        return false;
+  async nbFiles() {
+    try {
+      const files = await this.db.collection('files').countDocuments();
+      return files;
+    } catch (err) {
+      throw new Error(`Unable to get number of files ${err.message}`);
     }
-    async nbUsers() {
-        try {
-            const collection = this.db.collection('users').countDocuments();
-            return collection;
-        } catch (err) {
-            throw new Error(`Unable to get number of users ${err.message}`)
-        }
-    }
-
-    async nbFiles() {
-        try{
-            const collection = this.db.collection('files').countDocuments();
-            return collection;
-        } catch (err) {
-            throw new Error(`Unable to get number of files ${err.message}`);
-        }
-    }
-
+  }
 }
 
-const dbClient =new DBClient();
-
+const dbClient = new DBClient();
 export default dbClient;
